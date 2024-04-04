@@ -1,13 +1,12 @@
 const inquirer = require('inquirer');
 const { Pool } = require('pg');
-// const consoleTable = require('console.table')
 
 const pool = new Pool ({
-    user: 'postgres',
     host: 'localhost',
-    database: 'employees_db',
+    user: 'postgres',
     password: '666',
-    port: 3001,
+    database: 'employees_db',
+    port: 5432
 });
 
 const mainMenu = [
@@ -25,5 +24,27 @@ const mainMenu = [
             'Exit'
         ]
     }
-]
-   
+].then((answers) => {
+    switch(answers.action) {
+        case 'view all employee':
+            viewAllEmployees();
+            break;
+        case 'Add employee':
+            addEmployee();
+            break;
+        case 'view all roles':
+            viewAllRoles();
+            break;
+        case 'add role':
+            addRole();
+            break;
+        case 'view all departments':
+            viewAllDepartments();
+            break;
+        case 'add department':
+            addDepartment();
+            break;
+        default:
+            exit();
+    }
+})
