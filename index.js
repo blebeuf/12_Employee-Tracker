@@ -114,6 +114,8 @@ async function addEmployee() {
         await promptMain();
     }
 
+    // https://stackoverflow.com/questions/4448340/postgresql-duplicate-key-violates-unique-constraint
+    // information for duplicate key
     async function addRole() {
         const departments = await pool.query('SELECT id, name FROM b_departments');
         const departmentChoices = departments.rows.map(dept => ({ name: dept.name, value: dept.id }));
@@ -157,19 +159,24 @@ async function addEmployee() {
         await promptMain();
     }
     
-   async function addDepartment() {
-    const answers = await inquirer.prompt([
-        {
+    // https://stackoverflow.com/questions/4448340/postgresql-duplicate-key-violates-unique-constraint
+    // information for duplicate key
+    async function addDepartment() {
+        const { name } = await inquirer.prompt({
             type: 'input',
             name: 'name',
             message: "Department's name:"
+        });
+    
+        try {
+            await pool.query('INSERT INTO b_departments (name) VALUES ($1)', [name]);
+            console.log("Department added successfully.");
+        } catch (error) {
+            console.error('An error occurred while adding the department:', error.message);
         }
-    ]);
-    await pool.query('INSERT INTO b_departments (name) VALUES ($1)', [answers.name]);
-    console.log("Department added successfully.");
-    await promptMain();
-}
-
+        await promptMain();
+    }
+    
 function exit() {
     console.log("Goodbye!");
     pool.end().then(() => process.exit());
