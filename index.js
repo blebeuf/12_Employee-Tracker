@@ -19,6 +19,7 @@ const mainMenu = [
             'Add employee',
             'view all roles',
             'Add role',
+            'update employee role',
             'view all departments',
             'add department',
             'Exit'
@@ -26,9 +27,11 @@ const mainMenu = [
     }
 ];
 
+// async fuction, switch and case was assisted with NW tutor
 async function promptMain() {
     const answers = await inquirer.prompt(mainMenu);
     switch (answers.action) {
+// Call the appropriate function based on user choice
         case 'view all employees':
             await viewAllEmployees();
             break;
@@ -41,6 +44,9 @@ async function promptMain() {
         case 'Add role':
             await addRole();
             break;
+        case 'update employee role':
+                await updateEmployeeRole();
+                break;
         case 'view all departments':
             await viewAllDepartments();
             break;
@@ -68,8 +74,11 @@ async function addEmployee() {
     const roles = await pool.query('SELECT id, title FROM b_roles');
     const managers = await pool.query('SELECT id, first_name, last_name FROM b_employees');
 
+    // this portion was done with NW tutor and this information:
+    // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/map
     const roleChoices = roles.rows.map(role => ({ name: role.title, value: role.id }));
     const managerChoices = managers.rows.map(manager => ({ name: manager.first_name + ' ' + manager.last_name, value: manager.id }));
+    // notes here : https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/unshift
     managerChoices.unshift({ name: 'None', value: null });
 
     const answers = await inquirer.prompt([
@@ -143,8 +152,47 @@ async function addEmployee() {
         console.log("Role added successfully.");
         await promptMain();
     }
+
+    async function updateEmployeeRole() {
+        // Fetch the list of employees
+        const employeesRes = await pool.query('SELECT id, first_name, last_name FROM b_employees');
+        const employeeChoices = employeesRes.rows.map(emp => ({
+            name: `${emp.first_name} ${emp.last_name}`,
+            value: emp.id
+        }));
+    
+        // Ask the user to select an employee
+        const { employeeId } = await inquirer.prompt({
+            type: 'list',
+            name: 'employeeId',
+            message: "Which employee's role do you want to update?",
+            choices: employeeChoices
+        });
+    
+        // Fetch the list of roles
+        const rolesRes = await pool.query('SELECT id, title FROM b_roles');
+        const roleChoices = rolesRes.rows.map(role => ({
+            name: role.title,
+            value: role.id
+        }));
+    
+        // Ask the user to select the new role for the employee
+        const { roleId } = await inquirer.prompt({
+            type: 'list',
+            name: 'roleId',
+            message: "What's the new role for the employee?",
+            choices: roleChoices
+        });
+    
+        // Update the employee's role in the database
+        await pool.query('UPDATE b_employees SET role_id = $1 WHERE id = $2', [roleId, employeeId]);
+        console.log("Employee's role updated successfully.");
+    
+        await promptMain();
+    }
     
     async function viewAllEmployees() {
+        // notes on JOIN: https://www.postgresql.org/docs/current/tutorial-join.html
         const query = `
             SELECT b_employees.id, b_employees.first_name, b_employees.last_name, 
                    b_roles.title AS role, b_departments.name AS department, b_roles.salary, 
@@ -176,7 +224,9 @@ async function addEmployee() {
         }
         await promptMain();
     }
-    
+
+
+// Exit function to cleanly close the application, made in collaboration with NW bootcamp tutors.
 function exit() {
     console.log("Goodbye!");
     pool.end().then(() => process.exit());
